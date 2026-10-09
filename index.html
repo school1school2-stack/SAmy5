@@ -73,7 +73,7 @@
     <!-- شريط الإحصائيات مع زر النسخ -->
     <div class="stats-bar">
         <span id="approvedCount">الطلاب المعتمدين: 0</span>
-        <button class="btn btn-copy-all" onclick="copyAllEmails()">📋 نسخ كل الإيميلات</button>
+        <button class="btn btn-copy-all" onclick="copyAllStudentsList()">📋 نسخ الكل (اسم ثم إيميل)</button>
         <span id="pendingCountBadge" style="color: #d32f2f;">الطلبات المعلقة: 0</span>
     </div>
 
@@ -111,7 +111,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let cachedEmails = [];
+    let cachedStudents = [];
 
     function fetchStudents() {
         const approvedTbody = document.querySelector("#studentsTable tbody");
@@ -122,17 +122,17 @@
         db.collection("allowed_students").orderBy("name").onSnapshot((snapshot) => {
             let approvedCount = snapshot.size;
             approvedTbody.innerHTML = "";
-            cachedEmails = [];
+            cachedStudents = [];
             document.getElementById("approvedCount").innerText = `الطلاب المعتمدين: ${approvedCount}`;
 
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 const email = doc.id;
-                cachedEmails.push(email);
+                cachedStudents.push({ name: data.name, email: email });
                 
                 approvedTbody.innerHTML += `
                     <tr>
-                        <td id="name-cell-${email.replace(/[@.]/g, '_')}">${data.name}</td>
+                        <td>${data.name}</td>
                         <td>${email}</td>
                         <td>
                             <button class="btn-edit" onclick="editStudentName('${email}', '${data.name}')">✏️ تعديل الاسم</button>
@@ -181,16 +181,23 @@
         }
     }
 
-    function copyAllEmails() {
-        if (cachedEmails.length === 0) {
-            alert("لا توجد إيميلات للنسخ.");
+    function copyAllStudentsList() {
+        if (cachedStudents.length === 0) {
+            alert("لا توجد بيانات للنسخ.");
             return;
         }
-        const textToCopy = cachedEmails.join('\n');
+        // ترتيب كل طالب بحيث يكون اسمه في سطر وإيميله في السطر التالي
+        let lines = [];
+        cachedStudents.forEach(st => {
+            lines.push(st.name);
+            lines.push(st.email);
+        });
+
+        const textToCopy = lines.join('\n');
         navigator.clipboard.writeText(textToCopy).then(() => {
-            alert(`تم نسخ ${cachedEmails.length} إيميل/رقم بنجاح إلى الحافظة! 📋`);
+            alert(`تم نسخ بيانات ${cachedStudents.length} طالب بنجاح (اسم ثم إيميل) إلى الحافظة! 📋`);
         }).catch(err => {
-            alert("فشل نسخ الإيميلات.");
+            alert("فشل نسخ البيانات.");
         });
     }
 
